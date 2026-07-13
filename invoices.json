@@ -3,7 +3,7 @@
     "invoice_id": 1,
     "vendor_name": "Sysco Foods",
     "invoice_date": "2026-07-01",
-    "total_cost": 842.5,
+    "total_cost": 2060,
     "line_items": [
       {
         "item_name": "Chicken Breast (case)",
@@ -14,7 +14,7 @@
       {
         "item_name": "Paper Towels (case)",
         "quantity": 2,
-        "price": 21.25,
+        "price": 900,
         "cost_category": "inventory"
       }
     ]
@@ -50,6 +50,48 @@
         "cost_category": "food",
         "quantity": 1,
         "price": 90
+      }
+    ]
+  },
+  {
+    "invoice_id": 4,
+    "vendor_name": "Sysco Foods",
+    "invoice_date": "2026-07-08",
+    "total_cost": 201,
+    "line_items": [
+      {
+        "item_name": "Chicken Breast (case)",
+        "quantity": 3,
+        "price": 67,
+        "cost_category": "food"
+      }
+    ]
+  },
+  {
+    "invoice_id": 5,
+    "vendor_name": "US Foods",
+    "invoice_date": "2026-07-10",
+    "total_cost": 97.5,
+    "line_items": [
+      {
+        "item_name": "Romaine Lettuce (case)",
+        "quantity": 5,
+        "price": 19.5,
+        "cost_category": "food"
+      }
+    ]
+  },
+  {
+    "invoice_id": 6,
+    "vendor_name": "Sysco Foods",
+    "invoice_date": "2026-07-12",
+    "total_cost": 280,
+    "line_items": [
+      {
+        "item_name": "Chicken Breast (case)",
+        "quantity": 4,
+        "price": 70,
+        "cost_category": "food"
       }
     ]
   }

@@ -6,50 +6,264 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="app-header">
-    <h1>Restaurant Management</h1>
-    <p class="subtitle">Costs, revenue, and invoices at a glance</p>
-  </header>
+  <div class="app-shell">
+    <nav class="sidebar">
+      <div class="sidebar-brand"><span class="brand-mark"></span>Restaurant Management</div>
+      <div class="live-indicator"><span class="live-dot"></span><span id="last-updated-text">Last updated —</span></div>
+      <button class="nav-link active" data-view="dashboard-view">Dashboard</button>
+      <button class="nav-link" data-view="invoices-view">Invoices</button>
+      <button class="nav-link" data-view="recipes-view">Recipes</button>
+      <button class="nav-link" data-view="sales-view">Sales</button>
+      <button class="nav-link" data-view="menu-analysis-view">Menu Analysis</button>
+      <button class="nav-link" data-view="theoreticals-view">Theoreticals vs. Actuals</button>
+      <button class="nav-link" data-view="labor-view">Labor</button>
+      <button class="nav-link" data-view="price-history-view">Price History</button>
+    </nav>
 
-  <section id="summary-cards" class="cards-row"></section>
+    <main class="content">
+      <section class="view active" id="dashboard-view">
+        <header class="view-header">
+          <h1>Dashboard</h1>
+          <p class="subtitle">Costs, revenue, and budget performance at a glance</p>
+        </header>
 
-  <section class="panel" id="thresholds-section">
-    <div class="panel-header">
-      <h2>Budget Thresholds</h2>
-    </div>
-    <table id="thresholds-table">
-      <thead>
-        <tr><th>Category</th><th>Threshold %</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </section>
+        <section id="summary-cards" class="cards-row"></section>
 
-  <section class="panel" id="revenue-section">
-    <div class="panel-header">
-      <h2>Daily Revenue</h2>
-      <button class="btn btn-primary" id="add-revenue-btn">Add Day</button>
-    </div>
-    <table id="revenue-table">
-      <thead>
-        <tr><th>Date</th><th>Revenue</th><th></th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </section>
+        <section class="panel" id="pnl-section">
+          <div class="panel-header">
+            <h2>Daily Controllable P&amp;L</h2>
+          </div>
+          <table id="pnl-table">
+            <thead>
+              <tr><th>Date</th><th>Revenue</th><th>Food Cost</th><th>Inventory Cost</th><th>Labor Cost</th><th>Controllable Profit</th><th>Margin</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
 
-  <section class="panel" id="invoices-section">
-    <div class="panel-header">
-      <h2>Invoices</h2>
-      <button class="btn btn-primary" id="add-invoice-btn">Add Invoice</button>
-    </div>
-    <table id="invoices-table">
-      <thead>
-        <tr><th>Vendor</th><th>Date</th><th>Total Cost</th><th></th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </section>
+        <section class="panel" id="thresholds-section">
+          <div class="panel-header">
+            <h2>Budget Thresholds</h2>
+          </div>
+          <table id="thresholds-table">
+            <thead>
+              <tr><th>Category</th><th>Type</th><th>Target</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel" id="revenue-section">
+          <div class="panel-header">
+            <h2>Daily Revenue</h2>
+            <button class="btn btn-primary" id="add-revenue-btn">Add Day</button>
+          </div>
+          <table id="revenue-table">
+            <thead>
+              <tr><th>Date</th><th>Revenue</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section class="view" id="invoices-view">
+        <header class="view-header">
+          <h1>Invoices</h1>
+          <p class="subtitle">Vendor purchases and cost breakdown</p>
+        </header>
+
+        <section class="panel" id="invoices-section">
+          <div class="panel-header">
+            <h2>Invoices</h2>
+            <button class="btn btn-primary" id="add-invoice-btn">Add Invoice</button>
+          </div>
+          <table id="invoices-table">
+            <thead>
+              <tr><th>Vendor</th><th>Date</th><th>Total Cost</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section class="view" id="recipes-view">
+        <header class="view-header">
+          <h1>Recipes</h1>
+          <p class="subtitle">Cost out menu items using the latest invoice prices</p>
+        </header>
+
+        <section class="panel" id="recipes-section">
+          <div class="panel-header">
+            <h2>Recipes</h2>
+            <button class="btn btn-primary" id="add-recipe-btn">Add Recipe</button>
+          </div>
+          <div id="recipes-grid" class="recipes-grid"></div>
+        </section>
+      </section>
+
+      <section class="view" id="sales-view">
+        <header class="view-header">
+          <h1>Sales</h1>
+          <p class="subtitle">POS sales by item, with daily and item-level trends</p>
+        </header>
+
+        <section class="panel" id="pos-sales-section">
+          <div class="panel-header">
+            <h2>Recorded Sales</h2>
+            <button class="btn btn-primary" id="add-sale-btn">Add Sale</button>
+          </div>
+          <table id="pos-sales-table">
+            <thead>
+              <tr><th>Date</th><th>Item</th><th>Units Sold</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel" id="sales-by-item-section">
+          <div class="panel-header">
+            <h2>Sales by Item</h2>
+          </div>
+          <table id="sales-by-item-table">
+            <thead>
+              <tr><th>Item</th><th>Units Sold</th><th>Revenue</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel" id="daily-sales-section">
+          <div class="panel-header">
+            <h2>Daily Sales Trend</h2>
+          </div>
+          <table id="daily-sales-table">
+            <thead>
+              <tr><th>Date</th><th>Units Sold</th><th>Revenue</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section class="view" id="menu-analysis-view">
+        <header class="view-header">
+          <h1>Menu Analysis</h1>
+          <p class="subtitle">Popularity vs. profitability, plotted on a menu engineering 2&times;2</p>
+        </header>
+
+        <section class="panel" id="menu-analysis-chart-section">
+          <div class="panel-header">
+            <h2>Menu Engineering Matrix</h2>
+          </div>
+          <div id="menu-analysis-chart"></div>
+        </section>
+
+        <section class="panel" id="menu-analysis-table-section">
+          <div class="panel-header">
+            <h2>Classification</h2>
+          </div>
+          <table id="menu-analysis-table">
+            <thead>
+              <tr><th>Recipe</th><th>Units Sold</th><th>Margin</th><th>Quadrant</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section class="view" id="theoreticals-view">
+        <header class="view-header">
+          <h1>Theoreticals vs. Actuals</h1>
+          <p class="subtitle">Compare purchased, theoretically used, and counted on-hand quantities</p>
+        </header>
+
+        <section class="panel" id="inventory-counts-section">
+          <div class="panel-header">
+            <h2>Inventory Counts</h2>
+            <button class="btn btn-primary" id="add-count-btn">Add Count</button>
+          </div>
+          <table id="inventory-counts-table">
+            <thead>
+              <tr><th>Date</th><th>Item</th><th>Qty On Hand</th><th>Unit</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel" id="variance-section">
+          <div class="panel-header">
+            <h2>Purchased vs. Theoretical Usage</h2>
+          </div>
+          <p class="panel-caption">Theoretical Remaining assumes zero starting inventory for the period (Purchased &minus; Theoretical Usage). Variance is Theoretical Remaining minus the latest counted on-hand quantity.</p>
+          <table id="variance-table">
+            <thead>
+              <tr><th>Item</th><th>Purchased</th><th>Theoretical Usage</th><th>Theoretical Remaining</th><th>Actual On-Hand</th><th>Variance</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section class="view" id="labor-view">
+        <header class="view-header">
+          <h1>Labor</h1>
+          <p class="subtitle">Shift log and labor cost breakdown by job title and employee</p>
+        </header>
+
+        <section class="panel" id="labor-shifts-section">
+          <div class="panel-header">
+            <h2>Shift Log</h2>
+            <button class="btn btn-primary" id="add-shift-btn">Add Shift</button>
+          </div>
+          <table id="labor-shifts-table">
+            <thead>
+              <tr><th>Date</th><th>Employee</th><th>Job Title</th><th>Hours</th><th>Rate</th><th>Cost</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel" id="labor-by-title-section">
+          <div class="panel-header">
+            <h2>Labor Cost by Job Title</h2>
+          </div>
+          <table id="labor-by-title-table">
+            <thead>
+              <tr><th>Job Title</th><th>Hours</th><th>Cost</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel" id="labor-by-employee-section">
+          <div class="panel-header">
+            <h2>Labor Cost by Employee</h2>
+          </div>
+          <table id="labor-by-employee-table">
+            <thead>
+              <tr><th>Employee</th><th>Job Title</th><th>Hours</th><th>Cost</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section class="view" id="price-history-view">
+        <header class="view-header">
+          <h1>Price History</h1>
+          <p class="subtitle">Vendor pricing trends across invoices, so creeping prices don't go unnoticed</p>
+        </header>
+
+        <section class="panel" id="price-history-section">
+          <div class="panel-header">
+            <h2>Price Movers</h2>
+          </div>
+          <div id="price-history-charts"></div>
+        </section>
+      </section>
+    </main>
+  </div>
 
   <div class="modal-overlay" id="invoice-modal">
     <div class="modal">
@@ -78,6 +292,39 @@
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" id="cancel-invoice-btn">Cancel</button>
             <button type="submit" class="btn btn-primary">Save Invoice</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="recipe-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="recipe-modal-title">Add Recipe</h2>
+        <button class="icon-btn" id="close-recipe-modal-btn">&times;</button>
+      </div>
+      <form id="recipe-form">
+        <div class="form-row">
+          <label>
+            Recipe Name
+            <input type="text" id="recipe-name" required />
+          </label>
+          <label>
+            Menu Price
+            <input type="number" min="0" step="0.01" id="recipe-menu-price" required />
+          </label>
+        </div>
+
+        <h3>Ingredients</h3>
+        <div id="recipe-ingredients-list"></div>
+        <button type="button" class="btn btn-secondary" id="add-recipe-ingredient-btn">Add Ingredient</button>
+
+        <div class="modal-footer">
+          <div class="modal-total">Cost: <span id="recipe-modal-cost">$0.00</span></div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-recipe-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Recipe</button>
           </div>
         </div>
       </form>

@@ -1,7 +1,19 @@
 {
   "effective_start_date": "2026-07-01",
   "effective_end_date": null,
-  "food_cost_percentage_threshold": 90,
-  "inventory_cost_percentage_threshold": 8,
-  "labor_cost_percentage_threshold": 28
+  "food": {
+    "type": "percentage",
+    "percentage_value": 0,
+    "fixed_value": 3000
+  },
+  "inventory": {
+    "type": "percentage",
+    "percentage_value": 0,
+    "fixed_value": 800
+  },
+  "labor": {
+    "type": "percentage",
+    "percentage_value": 0,
+    "fixed_value": 2800
+  }
 }
