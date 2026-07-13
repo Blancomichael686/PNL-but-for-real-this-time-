@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Restaurant Management</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Restaurant Management</h1>
+    <p class="subtitle">Costs, revenue, and invoices at a glance</p>
+  </header>
+
+  <section id="summary-cards" class="cards-row"></section>
+
+  <section class="panel" id="thresholds-section">
+    <div class="panel-header">
+      <h2>Budget Thresholds</h2>
+    </div>
+    <table id="thresholds-table">
+      <thead>
+        <tr><th>Category</th><th>Threshold %</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="revenue-section">
+    <div class="panel-header">
+      <h2>Daily Revenue</h2>
+      <button class="btn btn-primary" id="add-revenue-btn">Add Day</button>
+    </div>
+    <table id="revenue-table">
+      <thead>
+        <tr><th>Date</th><th>Revenue</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="invoices-section">
+    <div class="panel-header">
+      <h2>Invoices</h2>
+      <button class="btn btn-primary" id="add-invoice-btn">Add Invoice</button>
+    </div>
+    <table id="invoices-table">
+      <thead>
+        <tr><th>Vendor</th><th>Date</th><th>Total Cost</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <div class="modal-overlay" id="invoice-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="invoice-modal-title">Add Invoice</h2>
+        <button class="icon-btn" id="close-modal-btn">&times;</button>
+      </div>
+      <form id="invoice-form">
+        <div class="form-row">
+          <label>
+            Vendor Name
+            <input type="text" id="invoice-vendor" required />
+          </label>
+          <label>
+            Date
+            <input type="date" id="invoice-date" required />
+          </label>
+        </div>
+
+        <h3>Line Items</h3>
+        <div id="line-items-list"></div>
+        <button type="button" class="btn btn-secondary" id="add-line-item-btn">Add Line Item</button>
+
+        <div class="modal-footer">
+          <div class="modal-total">Total: <span id="invoice-modal-total">$0.00</span></div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-invoice-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Invoice</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
