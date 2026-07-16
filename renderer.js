@@ -15,12 +15,20 @@ let recipes = [];
 let posSales = [];
 let inventoryCounts = [];
 let laborShifts = [];
+let orderGuides = [];
+let purchaseOrders = [];
 
 let modalLineItems = [];
 let modalEditingId = null;
 
 let modalIngredients = [];
 let recipeModalEditingId = null;
+
+let modalOrderItems = [];
+let orderGuideSortMode = 'alpha';
+
+const ORDER_STATUS_FLOW = ['draft', 'sent', 'received'];
+const ORDER_STATUS_NEXT_LABEL = { draft: 'Mark Sent', sent: 'Mark Received' };
 
 const QUADRANTS = {
   star: { label: 'Top Performer', color: 'var(--quad-star)' },
@@ -113,6 +121,18 @@ function saveLaborShiftsData() {
   window.restaurantData.saveLaborShifts(laborShifts);
 }
 
+function saveOrderGuidesData() {
+  window.restaurantData.saveOrderGuides(orderGuides);
+}
+
+function savePurchaseOrdersData() {
+  window.restaurantData.savePurchaseOrders(purchaseOrders);
+}
+
+function computeSuggestedQty(guideItem) {
+  return Math.max(guideItem.par_level - guideItem.on_hand_level, 0);
+}
+
 function updateLastUpdatedIndicator() {
   const el = document.getElementById('last-updated-text');
   if (el) el.textContent = 'Last updated ' + new Date().toLocaleTimeString();
@@ -128,6 +148,7 @@ function renderAllDerived() {
   renderVarianceTable();
   renderLaborByTitleTable();
   renderLaborByEmployeeTable();
+  renderLaborFilterTotal();
   renderPriceHistory();
   updateLastUpdatedIndicator();
 }
@@ -267,35 +288,94 @@ function renderThresholdsTable() {
   });
 }
 
-/* ---------- Daily controllable P&L ---------- */
+/* ---------- Controllable P&L ---------- */
+
+let pnlPeriod = 'daily';
+
+function getPnLBucketKey(dateStr) {
+  if (pnlPeriod === 'monthly') return dateStr.slice(0, 7);
+  if (pnlPeriod === 'weekly') return getWeekStart(dateStr);
+  return dateStr;
+}
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatPnLBucketLabel(key) {
+  if (pnlPeriod === 'weekly') return `Week of ${key}`;
+  if (pnlPeriod === 'monthly') {
+    const [year, month] = key.split('-');
+    return `${MONTH_NAMES[parseInt(month, 10) - 1]} ${year}`;
+  }
+  return key;
+}
+
+function computePnLBuckets() {
+  const buckets = new Map();
+
+  function getBucket(dateStr) {
+    const key = getPnLBucketKey(dateStr);
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { key, revenue: 0, food: 0, inventory: 0, labor: 0 };
+      buckets.set(key, bucket);
+    }
+    return bucket;
+  }
+
+  for (const day of dailyRevenue) {
+    getBucket(day.date).revenue += day.revenue;
+  }
+
+  for (const invoice of invoices) {
+    const bucket = getBucket(invoice.invoice_date);
+    for (const item of invoice.line_items) {
+      if (item.cost_category === 'food') bucket.food += item.quantity * item.price;
+      else if (item.cost_category === 'inventory') bucket.inventory += item.quantity * item.price;
+    }
+  }
+
+  for (const shift of laborShifts) {
+    getBucket(shift.date).labor += shift.hours_worked * shift.hourly_rate;
+  }
+
+  return [...buckets.values()].sort((a, b) => a.key.localeCompare(b.key));
+}
+
+document.querySelectorAll('#pnl-period .sort-toggle-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    pnlPeriod = btn.dataset.period;
+    document.querySelectorAll('#pnl-period .sort-toggle-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pnl-period-th').textContent =
+      pnlPeriod === 'monthly' ? 'Month' : pnlPeriod === 'weekly' ? 'Week' : 'Date';
+    renderPnLTable();
+  });
+});
 
 function renderPnLTable() {
   const tbody = document.querySelector('#pnl-table tbody');
   tbody.innerHTML = '';
 
-  if (dailyRevenue.length === 0) {
+  const buckets = computePnLBuckets();
+
+  if (buckets.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No revenue entries yet.</td></tr>';
     return;
   }
 
-  const sortedDays = [...dailyRevenue].sort((a, b) => a.date.localeCompare(b.date));
-
-  for (const day of sortedDays) {
-    const dayInvoices = invoices.filter((invoice) => invoice.invoice_date === day.date);
-    const totals = computeCostTotals(dayInvoices);
-    totals.labor = computeLaborCost(laborShifts.filter((shift) => shift.date === day.date));
-    const totalCost = totals.food + totals.inventory + totals.labor;
-    const profit = day.revenue - totalCost;
-    const margin = day.revenue > 0 ? (profit / day.revenue) * 100 : 0;
+  for (const bucket of buckets) {
+    const totalCost = bucket.food + bucket.inventory + bucket.labor;
+    const profit = bucket.revenue - totalCost;
+    const margin = bucket.revenue > 0 ? (profit / bucket.revenue) * 100 : 0;
     const profitClass = profit >= 0 ? 'positive' : 'negative';
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${day.date}</td>
-      <td>${formatMoney(day.revenue)}</td>
-      <td>${formatMoney(totals.food)}</td>
-      <td>${formatMoney(totals.inventory)}</td>
-      <td>${formatMoney(totals.labor)}</td>
+      <td>${formatPnLBucketLabel(bucket.key)}</td>
+      <td>${formatMoney(bucket.revenue)}</td>
+      <td>${formatMoney(bucket.food)}</td>
+      <td>${formatMoney(bucket.inventory)}</td>
+      <td>${formatMoney(bucket.labor)}</td>
       <td class="profit-value ${profitClass}">${formatMoney(profit)}</td>
       <td class="profit-value ${profitClass}">${margin.toFixed(1)}%</td>
     `;
@@ -395,6 +475,25 @@ function renderInvoicesTable() {
 
 document.getElementById('add-invoice-btn').addEventListener('click', () => openInvoiceModal(null));
 
+document.getElementById('capture-invoice-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('capture-invoice-btn');
+  const filePath = await window.restaurantData.selectInvoiceImage();
+  if (!filePath) return;
+
+  const originalLabel = btn.textContent;
+  btn.textContent = 'Scanning…';
+  btn.disabled = true;
+  try {
+    const scanData = await window.restaurantData.extractInvoiceImage(filePath);
+    openInvoiceModal(null, scanData);
+  } catch (err) {
+    alert('Could not read that image. Try a clearer photo, or add the invoice manually.');
+  } finally {
+    btn.textContent = originalLabel;
+    btn.disabled = false;
+  }
+});
+
 /* ---------- Invoice modal ---------- */
 
 const modalOverlay = document.getElementById('invoice-modal');
@@ -404,14 +503,25 @@ modalOverlay.addEventListener('click', (event) => {
   if (event.target === modalOverlay) closeInvoiceModal();
 });
 
-function openInvoiceModal(invoice) {
+function openInvoiceModal(invoice, scanData) {
   modalEditingId = invoice ? invoice.invoice_id : null;
   document.getElementById('invoice-modal-title').textContent = invoice ? 'Edit Invoice' : 'Add Invoice';
-  document.getElementById('invoice-vendor').value = invoice ? invoice.vendor_name : '';
-  document.getElementById('invoice-date').value = invoice ? invoice.invoice_date : todayISO();
-  modalLineItems = invoice
-    ? invoice.line_items.map((item) => ({ ...item }))
-    : [{ item_name: '', cost_category: 'food', quantity: 1, price: 0 }];
+  document.getElementById('invoice-scan-banner').classList.toggle('visible', Boolean(scanData));
+
+  if (scanData) {
+    document.getElementById('invoice-vendor').value = scanData.guessedVendor || '';
+    document.getElementById('invoice-date').value = scanData.guessedDate || todayISO();
+    modalLineItems = scanData.guessedLineItems.length > 0
+      ? scanData.guessedLineItems.map((item) => ({ ...item }))
+      : [{ item_name: '', cost_category: 'food', quantity: 1, price: 0 }];
+  } else {
+    document.getElementById('invoice-vendor').value = invoice ? invoice.vendor_name : '';
+    document.getElementById('invoice-date').value = invoice ? invoice.invoice_date : todayISO();
+    modalLineItems = invoice
+      ? invoice.line_items.map((item) => ({ ...item }))
+      : [{ item_name: '', cost_category: 'food', quantity: 1, price: 0 }];
+  }
+
   renderLineItemsList();
   modalOverlay.classList.add('open');
 }
@@ -587,6 +697,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     closeInvoiceModal();
     closeRecipeModal();
+    closeOrderModal();
   }
 });
 
@@ -784,21 +895,54 @@ function renderSalesByItemTable() {
   }
 }
 
+let salesTrendPeriod = 'daily';
+
+function getWeekStart(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function getSalesTrendKey(dateStr) {
+  if (salesTrendPeriod === 'yearly') return dateStr.slice(0, 4);
+  if (salesTrendPeriod === 'weekly') return getWeekStart(dateStr);
+  return dateStr;
+}
+
+function formatSalesTrendLabel(key) {
+  if (salesTrendPeriod === 'weekly') return `Week of ${key}`;
+  return key;
+}
+
+document.querySelectorAll('#sales-trend-period .sort-toggle-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    salesTrendPeriod = btn.dataset.period;
+    document.querySelectorAll('#sales-trend-period .sort-toggle-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('sales-trend-period-th').textContent =
+      salesTrendPeriod === 'yearly' ? 'Year' : salesTrendPeriod === 'weekly' ? 'Week' : 'Date';
+    renderDailySalesTable();
+  });
+});
+
 function renderDailySalesTable() {
   const tbody = document.querySelector('#daily-sales-table tbody');
   tbody.innerHTML = '';
 
-  const byDate = new Map();
+  const byPeriod = new Map();
   for (const sale of posSales) {
     const recipe = getRecipeById(sale.recipe_id);
     if (!recipe) continue;
-    const entry = byDate.get(sale.date) || { date: sale.date, units: 0, revenue: 0 };
+    const key = getSalesTrendKey(sale.date);
+    const entry = byPeriod.get(key) || { key, units: 0, revenue: 0 };
     entry.units += sale.quantity_sold;
     entry.revenue += sale.quantity_sold * recipe.menu_price;
-    byDate.set(sale.date, entry);
+    byPeriod.set(key, entry);
   }
 
-  const rows = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  const rows = [...byPeriod.values()].sort((a, b) => a.key.localeCompare(b.key));
 
   if (rows.length === 0) {
     tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No sales recorded yet.</td></tr>';
@@ -808,7 +952,7 @@ function renderDailySalesTable() {
   for (const row of rows) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${row.date}</td>
+      <td>${formatSalesTrendLabel(row.key)}</td>
       <td>${row.units}</td>
       <td>${formatMoney(row.revenue)}</td>
     `;
@@ -1025,6 +1169,48 @@ function renderVarianceTable() {
 
 /* ---------- Labor ---------- */
 
+let laborFilterFrom = '';
+let laborFilterTo = '';
+
+function getFilteredLaborShifts() {
+  return laborShifts.filter((shift) => {
+    if (laborFilterFrom && shift.date < laborFilterFrom) return false;
+    if (laborFilterTo && shift.date > laborFilterTo) return false;
+    return true;
+  });
+}
+
+function renderLaborFilterTotal() {
+  const el = document.getElementById('labor-filter-total');
+  const cost = computeLaborCost(getFilteredLaborShifts());
+  const isFiltered = laborFilterFrom || laborFilterTo;
+  el.textContent = `Total Labor Cost ${isFiltered ? '(selected range)' : '(all time)'}: ${formatMoney(cost)}`;
+}
+
+document.getElementById('labor-filter-from').addEventListener('change', (event) => {
+  laborFilterFrom = event.target.value;
+  renderLaborByTitleTable();
+  renderLaborByEmployeeTable();
+  renderLaborFilterTotal();
+});
+
+document.getElementById('labor-filter-to').addEventListener('change', (event) => {
+  laborFilterTo = event.target.value;
+  renderLaborByTitleTable();
+  renderLaborByEmployeeTable();
+  renderLaborFilterTotal();
+});
+
+document.getElementById('labor-filter-clear-btn').addEventListener('click', () => {
+  laborFilterFrom = '';
+  laborFilterTo = '';
+  document.getElementById('labor-filter-from').value = '';
+  document.getElementById('labor-filter-to').value = '';
+  renderLaborByTitleTable();
+  renderLaborByEmployeeTable();
+  renderLaborFilterTotal();
+});
+
 function renderLaborShiftsTable() {
   const tbody = document.querySelector('#labor-shifts-table tbody');
   tbody.innerHTML = '';
@@ -1084,7 +1270,7 @@ function renderLaborByTitleTable() {
   tbody.innerHTML = '';
 
   const byTitle = new Map();
-  for (const shift of laborShifts) {
+  for (const shift of getFilteredLaborShifts()) {
     const entry = byTitle.get(shift.job_title) || { title: shift.job_title, hours: 0, cost: 0 };
     entry.hours += shift.hours_worked;
     entry.cost += shift.hours_worked * shift.hourly_rate;
@@ -1094,7 +1280,7 @@ function renderLaborByTitleTable() {
   const rows = [...byTitle.values()].sort((a, b) => b.cost - a.cost);
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No shifts logged yet.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="3" class="empty-state">${laborShifts.length === 0 ? 'No shifts logged yet.' : 'No shifts in the selected date range.'}</td></tr>`;
     return;
   }
 
@@ -1114,7 +1300,7 @@ function renderLaborByEmployeeTable() {
   tbody.innerHTML = '';
 
   const byEmployee = new Map();
-  for (const shift of laborShifts) {
+  for (const shift of getFilteredLaborShifts()) {
     const entry = byEmployee.get(shift.employee_name) || { name: shift.employee_name, title: shift.job_title, hours: 0, cost: 0 };
     entry.hours += shift.hours_worked;
     entry.cost += shift.hours_worked * shift.hourly_rate;
@@ -1124,7 +1310,7 @@ function renderLaborByEmployeeTable() {
   const rows = [...byEmployee.values()].sort((a, b) => b.cost - a.cost);
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No shifts logged yet.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">${laborShifts.length === 0 ? 'No shifts logged yet.' : 'No shifts in the selected date range.'}</td></tr>`;
     return;
   }
 
@@ -1215,6 +1401,258 @@ function renderPriceHistory() {
   container.innerHTML = `<div class="price-history-grid">${cards}</div>`;
 }
 
+/* ---------- Order guide ---------- */
+
+function getSortedOrderGuides() {
+  const list = [...orderGuides];
+  if (orderGuideSortMode === 'category') {
+    list.sort((a, b) => a.category.localeCompare(b.category) || a.item_name.localeCompare(b.item_name));
+  } else if (orderGuideSortMode === 'shelf') {
+    list.sort((a, b) => a.shelf_position - b.shelf_position);
+  } else {
+    list.sort((a, b) => a.item_name.localeCompare(b.item_name));
+  }
+  return list;
+}
+
+function renderOrderGuideTable() {
+  const tbody = document.querySelector('#order-guide-table tbody');
+  tbody.innerHTML = '';
+
+  if (orderGuides.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No order guide items yet.</td></tr>';
+    return;
+  }
+
+  for (const item of getSortedOrderGuides()) {
+    const suggested = computeSuggestedQty(item);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${item.item_name}" data-id="${item.item_id}" data-field="item_name" /></td>
+      <td><input type="text" value="${item.category}" data-id="${item.item_id}" data-field="category" /></td>
+      <td><input type="text" value="${item.vendor_name}" data-id="${item.item_id}" data-field="vendor_name" /></td>
+      <td><input type="text" value="${item.order_unit}" data-id="${item.item_id}" data-field="order_unit" /></td>
+      <td><input type="number" min="0" step="1" value="${item.par_level}" data-id="${item.item_id}" data-field="par_level" /></td>
+      <td><input type="number" min="0" step="1" value="${item.on_hand_level}" data-id="${item.item_id}" data-field="on_hand_level" /></td>
+      <td class="suggested-order-value ${suggested > 0 ? 'needed' : 'none'}">${suggested > 0 ? suggested : '—'}</td>
+      <td><button class="icon-btn delete-order-guide-btn" data-id="${item.item_id}" title="Delete">&times;</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  tbody.querySelectorAll('input').forEach((input) => {
+    input.addEventListener('change', () => {
+      const item = orderGuides.find((g) => g.item_id === Number(input.dataset.id));
+      const field = input.dataset.field;
+      item[field] = (field === 'par_level' || field === 'on_hand_level') ? (parseFloat(input.value) || 0) : input.value;
+      saveOrderGuidesData();
+      renderOrderGuideTable();
+    });
+  });
+
+  tbody.querySelectorAll('.delete-order-guide-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      orderGuides = orderGuides.filter((g) => g.item_id !== Number(btn.dataset.id));
+      saveOrderGuidesData();
+      renderOrderGuideTable();
+    });
+  });
+}
+
+document.getElementById('add-order-guide-item-btn').addEventListener('click', () => {
+  const nextId = orderGuides.reduce((max, g) => Math.max(max, g.item_id), 0) + 1;
+  const nextShelf = orderGuides.reduce((max, g) => Math.max(max, g.shelf_position), 0) + 1;
+  orderGuides.push({ item_id: nextId, item_name: '', category: '', vendor_name: '', order_unit: 'case', par_level: 0, on_hand_level: 0, shelf_position: nextShelf });
+  saveOrderGuidesData();
+  renderOrderGuideTable();
+});
+
+document.querySelectorAll('#order-guide-sort .sort-toggle-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    orderGuideSortMode = btn.dataset.sort;
+    document.querySelectorAll('#order-guide-sort .sort-toggle-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderOrderGuideTable();
+  });
+});
+
+/* ---------- Purchase orders ---------- */
+
+function renderPurchaseOrdersTable() {
+  const tbody = document.querySelector('#purchase-orders-table tbody');
+  tbody.innerHTML = '';
+
+  if (purchaseOrders.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No orders yet.</td></tr>';
+    return;
+  }
+
+  const sortedOrders = [...purchaseOrders].sort((a, b) => b.order_date.localeCompare(a.order_date));
+
+  for (const order of sortedOrders) {
+    const nextLabel = ORDER_STATUS_NEXT_LABEL[order.status];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${order.vendor_name}</td>
+      <td>${order.order_date}</td>
+      <td>${order.line_items.length} item${order.line_items.length === 1 ? '' : 's'}</td>
+      <td><span class="order-status-badge ${order.status}">${order.status}</span></td>
+      <td>
+        ${nextLabel ? `<button class="btn btn-secondary advance-order-btn" data-id="${order.order_id}">${nextLabel}</button>` : ''}
+        <button class="icon-btn delete-order-btn" data-id="${order.order_id}" title="Delete">&times;</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  tbody.querySelectorAll('.advance-order-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const order = purchaseOrders.find((o) => o.order_id === Number(btn.dataset.id));
+      const idx = ORDER_STATUS_FLOW.indexOf(order.status);
+      if (idx < ORDER_STATUS_FLOW.length - 1) {
+        order.status = ORDER_STATUS_FLOW[idx + 1];
+      }
+      savePurchaseOrdersData();
+      renderPurchaseOrdersTable();
+    });
+  });
+
+  tbody.querySelectorAll('.delete-order-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      purchaseOrders = purchaseOrders.filter((o) => o.order_id !== Number(btn.dataset.id));
+      savePurchaseOrdersData();
+      renderPurchaseOrdersTable();
+    });
+  });
+}
+
+/* ---------- Order modal ---------- */
+
+const orderModalOverlay = document.getElementById('order-modal');
+const orderForm = document.getElementById('order-form');
+const orderVendorSelect = document.getElementById('order-vendor');
+
+function getKnownVendorNames() {
+  const names = new Set();
+  for (const g of orderGuides) if (g.vendor_name) names.add(g.vendor_name);
+  for (const inv of invoices) if (inv.vendor_name) names.add(inv.vendor_name);
+  return [...names].sort();
+}
+
+function populateOrderItemsForVendor(vendorName) {
+  modalOrderItems = orderGuides
+    .filter((g) => g.vendor_name === vendorName && computeSuggestedQty(g) > 0)
+    .map((g) => ({ item_name: g.item_name, quantity: computeSuggestedQty(g), order_unit: g.order_unit }));
+  renderOrderItemsList();
+}
+
+function openOrderModal() {
+  const vendorNames = getKnownVendorNames();
+  orderVendorSelect.innerHTML = vendorNames.map((name) => `<option value="${name}">${name}</option>`).join('');
+  document.getElementById('order-date').value = todayISO();
+
+  if (vendorNames.length > 0) {
+    populateOrderItemsForVendor(vendorNames[0]);
+  } else {
+    modalOrderItems = [];
+    renderOrderItemsList();
+  }
+
+  orderModalOverlay.classList.add('open');
+}
+
+function closeOrderModal() {
+  orderModalOverlay.classList.remove('open');
+}
+
+function renderOrderItemsList() {
+  const list = document.getElementById('order-items-list');
+  list.innerHTML = '';
+
+  modalOrderItems.forEach((item, index) => {
+    const row = document.createElement('div');
+    row.className = 'order-item-row';
+    row.innerHTML = `
+      <label>Item
+        <input type="text" data-index="${index}" data-field="item_name" value="${item.item_name}" placeholder="Item name" />
+      </label>
+      <label>Quantity
+        <input type="number" min="0" step="1" data-index="${index}" data-field="quantity" value="${item.quantity}" />
+      </label>
+      <label>Unit
+        <input type="text" data-index="${index}" data-field="order_unit" value="${item.order_unit}" />
+      </label>
+      <button type="button" class="icon-btn remove-order-item-btn" data-index="${index}" title="Remove">&times;</button>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('input').forEach((el) => {
+    el.addEventListener('input', () => {
+      const index = Number(el.dataset.index);
+      const field = el.dataset.field;
+      modalOrderItems[index][field] = field === 'quantity' ? (parseFloat(el.value) || 0) : el.value;
+      updateOrderModalSummary();
+    });
+  });
+
+  list.querySelectorAll('.remove-order-item-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      modalOrderItems.splice(Number(btn.dataset.index), 1);
+      renderOrderItemsList();
+    });
+  });
+
+  updateOrderModalSummary();
+}
+
+function updateOrderModalSummary() {
+  const el = document.getElementById('order-modal-summary');
+  el.textContent = `${modalOrderItems.length} item${modalOrderItems.length === 1 ? '' : 's'}`;
+}
+
+orderVendorSelect.addEventListener('change', () => {
+  populateOrderItemsForVendor(orderVendorSelect.value);
+});
+
+document.getElementById('add-order-item-btn').addEventListener('click', () => {
+  modalOrderItems.push({ item_name: '', quantity: 1, order_unit: 'case' });
+  renderOrderItemsList();
+});
+
+document.getElementById('create-order-btn').addEventListener('click', openOrderModal);
+document.getElementById('close-order-modal-btn').addEventListener('click', closeOrderModal);
+document.getElementById('cancel-order-btn').addEventListener('click', closeOrderModal);
+
+orderModalOverlay.addEventListener('click', (event) => {
+  if (event.target === orderModalOverlay) closeOrderModal();
+});
+
+orderForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+
+  const vendorName = orderVendorSelect.value;
+  const orderDate = document.getElementById('order-date').value;
+  const lineItems = modalOrderItems.filter((item) => item.item_name.trim() !== '' && item.quantity > 0);
+
+  if (!vendorName || !orderDate || lineItems.length === 0) {
+    return;
+  }
+
+  const nextId = purchaseOrders.reduce((max, o) => Math.max(max, o.order_id), 0) + 1;
+  purchaseOrders.push({
+    order_id: nextId,
+    vendor_name: vendorName,
+    order_date: orderDate,
+    status: 'draft',
+    line_items: lineItems
+  });
+
+  savePurchaseOrdersData();
+  renderPurchaseOrdersTable();
+  closeOrderModal();
+});
+
 /* ---------- Sidebar navigation ---------- */
 
 document.querySelectorAll('.nav-link').forEach((link) => {
@@ -1229,36 +1667,39 @@ document.querySelectorAll('.nav-link').forEach((link) => {
 /* ---------- Initial render ---------- */
 
 async function loadAllData() {
-  [invoices, thresholds, dailyRevenue, recipes, posSales, inventoryCounts, laborShifts] = await Promise.all([
+  [invoices, thresholds, dailyRevenue, recipes, posSales, inventoryCounts, laborShifts, orderGuides, purchaseOrders] = await Promise.all([
     window.restaurantData.getInvoices(),
     window.restaurantData.getBudgetThresholds(),
     window.restaurantData.getDailyRevenue(),
     window.restaurantData.getRecipes(),
     window.restaurantData.getPosSales(),
     window.restaurantData.getInventoryCounts(),
-    window.restaurantData.getLaborShifts()
+    window.restaurantData.getLaborShifts(),
+    window.restaurantData.getOrderGuides(),
+    window.restaurantData.getPurchaseOrders()
   ]);
 }
 
-async function init() {
-  await loadAllData();
+function renderOwnTables() {
   renderThresholdsTable();
   renderRevenueTable();
   renderInvoicesTable();
   renderPosSalesTable();
   renderInventoryCountsTable();
   renderLaborShiftsTable();
+  renderOrderGuideTable();
+  renderPurchaseOrdersTable();
+}
+
+async function init() {
+  await loadAllData();
+  renderOwnTables();
   renderAllDerived();
 }
 
 window.restaurantData.onDataChanged(async () => {
   await loadAllData();
-  renderThresholdsTable();
-  renderRevenueTable();
-  renderInvoicesTable();
-  renderPosSalesTable();
-  renderInventoryCountsTable();
-  renderLaborShiftsTable();
+  renderOwnTables();
   renderAllDerived();
 });
 

@@ -2,22 +2,29 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Restaurant Management</title>
+  <title>Eightysix</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app-shell">
     <nav class="sidebar">
-      <div class="sidebar-brand"><span class="brand-mark"></span>Restaurant Management</div>
+      <div class="sidebar-brand">
+        <div class="brand-text">
+          <span class="brand-name">eightysix</span>
+          <span class="brand-tagline">Restaurant Finance</span>
+        </div>
+      </div>
       <div class="live-indicator"><span class="live-dot"></span><span id="last-updated-text">Last updated —</span></div>
+
       <button class="nav-link active" data-view="dashboard-view">Dashboard</button>
-      <button class="nav-link" data-view="invoices-view">Invoices</button>
       <button class="nav-link" data-view="recipes-view">Recipes</button>
+      <button class="nav-link" data-view="invoices-view">Invoices</button>
+      <button class="nav-link" data-view="ordering-view">Ordering</button>
+      <button class="nav-link" data-view="price-history-view">Price History</button>
+      <button class="nav-link" data-view="theoreticals-view">Theoreticals vs. Actuals</button>
       <button class="nav-link" data-view="sales-view">Sales</button>
       <button class="nav-link" data-view="menu-analysis-view">Menu Analysis</button>
-      <button class="nav-link" data-view="theoreticals-view">Theoreticals vs. Actuals</button>
       <button class="nav-link" data-view="labor-view">Labor</button>
-      <button class="nav-link" data-view="price-history-view">Price History</button>
     </nav>
 
     <main class="content">
@@ -31,11 +38,16 @@
 
         <section class="panel" id="pnl-section">
           <div class="panel-header">
-            <h2>Daily Controllable P&amp;L</h2>
+            <h2>Controllable P&amp;L</h2>
+            <div class="sort-toggle" id="pnl-period">
+              <button type="button" class="sort-toggle-btn active" data-period="daily">Daily</button>
+              <button type="button" class="sort-toggle-btn" data-period="weekly">Weekly</button>
+              <button type="button" class="sort-toggle-btn" data-period="monthly">Monthly</button>
+            </div>
           </div>
           <table id="pnl-table">
             <thead>
-              <tr><th>Date</th><th>Revenue</th><th>Food Cost</th><th>Inventory Cost</th><th>Labor Cost</th><th>Controllable Profit</th><th>Margin</th></tr>
+              <tr><th id="pnl-period-th">Date</th><th>Revenue</th><th>Food Cost</th><th>Inventory Cost</th><th>Labor Cost</th><th>Controllable Profit</th><th>Margin</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -76,11 +88,54 @@
         <section class="panel" id="invoices-section">
           <div class="panel-header">
             <h2>Invoices</h2>
-            <button class="btn btn-primary" id="add-invoice-btn">Add Invoice</button>
+            <div class="panel-header-actions">
+              <button class="btn btn-secondary" id="capture-invoice-btn">Capture Invoice</button>
+              <button class="btn btn-primary" id="add-invoice-btn">Add Invoice</button>
+            </div>
           </div>
           <table id="invoices-table">
             <thead>
               <tr><th>Vendor</th><th>Date</th><th>Total Cost</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section class="view" id="ordering-view">
+        <header class="view-header">
+          <h1>Ordering</h1>
+          <p class="subtitle">Order guides with par levels, plus vendor orders tracked start to finish</p>
+        </header>
+
+        <section class="panel" id="order-guide-section">
+          <div class="panel-header">
+            <h2>Order Guide</h2>
+            <div class="panel-header-actions">
+              <div class="sort-toggle" id="order-guide-sort">
+                <button type="button" class="sort-toggle-btn active" data-sort="alpha">Alphabetical</button>
+                <button type="button" class="sort-toggle-btn" data-sort="category">Category</button>
+                <button type="button" class="sort-toggle-btn" data-sort="shelf">Sheet-to-Shelf</button>
+              </div>
+              <button class="btn btn-primary" id="add-order-guide-item-btn">Add Item</button>
+            </div>
+          </div>
+          <table id="order-guide-table">
+            <thead>
+              <tr><th>Item</th><th>Category</th><th>Vendor</th><th>Unit</th><th>Par</th><th>On Hand</th><th>Suggested Order</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="panel" id="purchase-orders-section">
+          <div class="panel-header">
+            <h2>Purchase Orders</h2>
+            <button class="btn btn-primary" id="create-order-btn">Create Order</button>
+          </div>
+          <table id="purchase-orders-table">
+            <thead>
+              <tr><th>Vendor</th><th>Date</th><th>Items</th><th>Status</th><th></th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -135,11 +190,16 @@
 
         <section class="panel" id="daily-sales-section">
           <div class="panel-header">
-            <h2>Daily Sales Trend</h2>
+            <h2>Sales Trend</h2>
+            <div class="sort-toggle" id="sales-trend-period">
+              <button type="button" class="sort-toggle-btn active" data-period="daily">Daily</button>
+              <button type="button" class="sort-toggle-btn" data-period="weekly">Weekly</button>
+              <button type="button" class="sort-toggle-btn" data-period="yearly">Yearly</button>
+            </div>
           </div>
           <table id="daily-sales-table">
             <thead>
-              <tr><th>Date</th><th>Units Sold</th><th>Revenue</th></tr>
+              <tr><th id="sales-trend-period-th">Date</th><th>Units Sold</th><th>Revenue</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -224,6 +284,22 @@
           </table>
         </section>
 
+        <section class="panel" id="labor-filter-section">
+          <div class="panel-header">
+            <h2>Labor Cost Lookup</h2>
+          </div>
+          <div class="date-filter-row">
+            <label>From
+              <input type="date" id="labor-filter-from" />
+            </label>
+            <label>To
+              <input type="date" id="labor-filter-to" />
+            </label>
+            <button type="button" class="btn btn-secondary" id="labor-filter-clear-btn">Clear</button>
+            <div class="date-filter-total" id="labor-filter-total">Total Labor Cost (all time): $0.00</div>
+          </div>
+        </section>
+
         <section class="panel" id="labor-by-title-section">
           <div class="panel-header">
             <h2>Labor Cost by Job Title</h2>
@@ -271,6 +347,7 @@
         <h2 id="invoice-modal-title">Add Invoice</h2>
         <button class="icon-btn" id="close-modal-btn">&times;</button>
       </div>
+      <div class="scan-banner" id="invoice-scan-banner">Auto-filled from a photo scan &mdash; please review the vendor, date, and line items before saving.</div>
       <form id="invoice-form">
         <div class="form-row">
           <label>
@@ -325,6 +402,39 @@
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" id="cancel-recipe-btn">Cancel</button>
             <button type="submit" class="btn btn-primary">Save Recipe</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="order-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Create Order</h2>
+        <button class="icon-btn" id="close-order-modal-btn">&times;</button>
+      </div>
+      <form id="order-form">
+        <div class="form-row">
+          <label>
+            Vendor
+            <select id="order-vendor" required></select>
+          </label>
+          <label>
+            Order Date
+            <input type="date" id="order-date" required />
+          </label>
+        </div>
+
+        <h3>Line Items</h3>
+        <div id="order-items-list"></div>
+        <button type="button" class="btn btn-secondary" id="add-order-item-btn">Add Item</button>
+
+        <div class="modal-footer">
+          <div class="modal-total" id="order-modal-summary">0 items</div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-order-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Order</button>
           </div>
         </div>
       </form>

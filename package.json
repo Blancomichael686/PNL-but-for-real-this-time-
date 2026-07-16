@@ -1,12 +1,15 @@
 {
-  "name": "restaurant-app",
+  "name": "eightysix",
   "version": "0.1.0",
-  "description": "Restaurant management platform - invoice, budget, and revenue tracking",
+  "description": "Eightysix - restaurant finance management: recipe costing, P&L, budget tracking, sales, menu analysis, inventory, labor, and ordering",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
   },
   "devDependencies": {
     "electron": "^31.0.0"
+  },
+  "dependencies": {
+    "tesseract.js": "^7.0.0"
   }
 }

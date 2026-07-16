@@ -55,20 +55,29 @@ body {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 10px;
+  padding: 0 8px 20px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.brand-name {
+  font-size: 15px;
   font-weight: 800;
   letter-spacing: -0.01em;
-  padding: 0 8px 20px;
   color: #ffffff;
 }
 
-.brand-mark {
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
-  background: #ffffff;
-  flex-shrink: 0;
+.brand-tagline {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b6b68;
 }
 
 .live-indicator {
@@ -443,6 +452,21 @@ td select:focus {
   margin: 0;
 }
 
+.scan-banner {
+  display: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9a6700;
+  background: #fff3d6;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: -4px 0 16px;
+}
+
+.scan-banner.visible {
+  display: block;
+}
+
 .modal h3 {
   font-size: 11px;
   font-weight: 700;
@@ -796,4 +820,130 @@ td select:focus {
 .sparkline-svg .spark-baseline {
   stroke: var(--chart-gridline);
   stroke-width: 1;
+}
+
+/* Ordering */
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sort-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sort-toggle-btn {
+  border: none;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-right: 1px solid var(--border);
+}
+
+.sort-toggle-btn:last-child {
+  border-right: none;
+}
+
+.sort-toggle-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.sort-toggle-btn.active {
+  background: var(--ink);
+  color: #ffffff;
+}
+
+.suggested-order-value {
+  font-weight: 700;
+}
+
+.suggested-order-value.needed {
+  color: var(--over);
+}
+
+.suggested-order-value.none {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.order-status-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  display: inline-block;
+  text-transform: capitalize;
+}
+
+.order-status-badge.draft {
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.order-status-badge.sent {
+  color: #9a6700;
+  background: #fff3d6;
+}
+
+.order-status-badge.received {
+  color: var(--under);
+  background: var(--under-bg);
+}
+
+.order-item-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+
+/* Date filter row */
+.date-filter-row {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.date-filter-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.date-filter-row input[type="date"] {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.date-filter-row input[type="date"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.08);
+}
+
+.date-filter-total {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 700;
 }

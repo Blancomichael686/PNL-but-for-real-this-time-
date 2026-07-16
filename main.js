@@ -1,6 +1,8 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const { createWorker } = require('tesseract.js');
+const { extractInvoiceData } = require('./invoice-ocr');
 
 const DATA_FILES = [
   'invoices.json',
@@ -9,7 +11,9 @@ const DATA_FILES = [
   'recipes.json',
   'pos_sales.json',
   'inventory_counts.json',
-  'labor_shifts.json'
+  'labor_shifts.json',
+  'order_guides.json',
+  'purchase_orders.json'
 ];
 
 let mainWindow = null;
@@ -45,6 +49,8 @@ ipcMain.handle('get-recipes', () => readJSON('recipes.json'));
 ipcMain.handle('get-pos-sales', () => readJSON('pos_sales.json'));
 ipcMain.handle('get-inventory-counts', () => readJSON('inventory_counts.json'));
 ipcMain.handle('get-labor-shifts', () => readJSON('labor_shifts.json'));
+ipcMain.handle('get-order-guides', () => readJSON('order_guides.json'));
+ipcMain.handle('get-purchase-orders', () => readJSON('purchase_orders.json'));
 
 ipcMain.handle('save-invoices', (event, data) => writeJSON('invoices.json', data));
 ipcMain.handle('save-budget-thresholds', (event, data) => writeJSON('budget_thresholds.json', data));
@@ -53,6 +59,39 @@ ipcMain.handle('save-recipes', (event, data) => writeJSON('recipes.json', data))
 ipcMain.handle('save-pos-sales', (event, data) => writeJSON('pos_sales.json', data));
 ipcMain.handle('save-inventory-counts', (event, data) => writeJSON('inventory_counts.json', data));
 ipcMain.handle('save-labor-shifts', (event, data) => writeJSON('labor_shifts.json', data));
+ipcMain.handle('save-order-guides', (event, data) => writeJSON('order_guides.json', data));
+ipcMain.handle('save-purchase-orders', (event, data) => writeJSON('purchase_orders.json', data));
+
+ipcMain.handle('select-invoice-image', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select Invoice Photo',
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }],
+    properties: ['openFile']
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+let ocrWorker = null;
+
+async function getOcrWorker() {
+  if (!ocrWorker) {
+    // langPath points at the locally bundled eng.traineddata.gz (ocr-data/) so this
+    // never fetches from the jsdelivr CDN tesseract.js otherwise defaults to.
+    ocrWorker = await createWorker('eng', undefined, {
+      langPath: path.join(__dirname, 'ocr-data'),
+      cachePath: path.join(__dirname, 'ocr-data'),
+      gzip: true
+    });
+  }
+  return ocrWorker;
+}
+
+ipcMain.handle('extract-invoice-image', async (event, filePath) => {
+  const worker = await getOcrWorker();
+  const { data: { text } } = await worker.recognize(filePath);
+  return extractInvoiceData(text);
+});
 
 let watchDebounceTimer = null;
 
