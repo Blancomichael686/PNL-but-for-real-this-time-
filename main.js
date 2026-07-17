@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { createWorker } = require('tesseract.js');
 const { extractInvoiceData } = require('./invoice-ocr');
+const { startMobileServer, getLanAddress } = require('./server');
 
 const DATA_FILES = [
   'invoices.json',
@@ -40,6 +41,15 @@ function writeJSON(filename, data) {
   const filePath = path.join(__dirname, filename);
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
   pendingSelfWrites.add(filename);
+}
+
+// Used for writes that originate outside the desktop window (the mobile server).
+// Deliberately skips pendingSelfWrites: the desktop's in-memory state doesn't have
+// this change yet, so it needs the normal fs.watch -> data-changed notification to
+// refetch and actually show what was just added from a phone.
+function writeJSONFromExternal(filename, data) {
+  const filePath = path.join(__dirname, filename);
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
 ipcMain.handle('get-invoices', () => readJSON('invoices.json'));
@@ -91,6 +101,47 @@ ipcMain.handle('extract-invoice-image', async (event, filePath) => {
   const worker = await getOcrWorker();
   const { data: { text } } = await worker.recognize(filePath);
   return extractInvoiceData(text);
+});
+
+async function extractInvoiceFromImageBuffer(buffer) {
+  const worker = await getOcrWorker();
+  const { data: { text } } = await worker.recognize(buffer);
+  return extractInvoiceData(text);
+}
+
+let mobileServer = null;
+let mobilePin = null;
+const MOBILE_PORT = 8787;
+
+function mobileAccessStatus() {
+  if (!mobileServer) return { enabled: false };
+  return { enabled: true, url: `http://${getLanAddress()}:${MOBILE_PORT}`, pin: mobilePin };
+}
+
+ipcMain.handle('get-mobile-access-status', () => mobileAccessStatus());
+
+ipcMain.handle('enable-mobile-access', () => {
+  if (!mobileServer) {
+    mobilePin = String(Math.floor(1000 + Math.random() * 9000));
+    mobileServer = startMobileServer({
+      port: MOBILE_PORT,
+      pin: mobilePin,
+      readJSON,
+      writeJSON: writeJSONFromExternal,
+      extractInvoiceFromImageBuffer,
+      staticDir: __dirname
+    });
+  }
+  return mobileAccessStatus();
+});
+
+ipcMain.handle('disable-mobile-access', () => {
+  if (mobileServer) {
+    mobileServer.close();
+    mobileServer = null;
+    mobilePin = null;
+  }
+  return mobileAccessStatus();
 });
 
 let watchDebounceTimer = null;

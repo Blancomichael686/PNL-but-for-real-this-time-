@@ -21,5 +21,8 @@ contextBridge.exposeInMainWorld('restaurantData', {
   savePurchaseOrders: (data) => ipcRenderer.invoke('save-purchase-orders', data),
   selectInvoiceImage: () => ipcRenderer.invoke('select-invoice-image'),
   extractInvoiceImage: (filePath) => ipcRenderer.invoke('extract-invoice-image', filePath),
+  getMobileAccessStatus: () => ipcRenderer.invoke('get-mobile-access-status'),
+  enableMobileAccess: () => ipcRenderer.invoke('enable-mobile-access'),
+  disableMobileAccess: () => ipcRenderer.invoke('disable-mobile-access'),
   onDataChanged: (callback) => ipcRenderer.on('data-changed', () => callback())
 });

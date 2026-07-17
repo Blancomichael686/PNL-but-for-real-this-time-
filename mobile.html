@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eightysix Mobile</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body {
+      padding: 20px 16px 60px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      margin: 0 0 4px;
+    }
+
+    .mobile-subtitle {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 0 0 20px;
+    }
+
+    .mobile-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .mobile-tab-btn {
+      flex: 1;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .mobile-tab-btn.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .mobile-screen {
+      display: none;
+    }
+
+    .mobile-screen.active {
+      display: block;
+    }
+
+    .mobile-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .mobile-field label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .mobile-field input,
+    .mobile-field select {
+      font-size: 16px;
+      padding: 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .mobile-item-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr auto;
+      gap: 6px;
+      margin-bottom: 10px;
+      align-items: end;
+    }
+
+    .mobile-item-row input {
+      font-size: 14px;
+      padding: 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      width: 100%;
+    }
+
+    .mobile-status {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 8px 0;
+      min-height: 18px;
+    }
+
+    .mobile-status.success { color: var(--under); }
+    .mobile-status.error { color: var(--over); }
+
+    #pin-gate {
+      max-width: 320px;
+      margin: 60px auto 0;
+      text-align: center;
+    }
+
+    #pin-input {
+      font-size: 24px;
+      text-align: center;
+      letter-spacing: 0.2em;
+      padding: 14px;
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      margin: 16px 0;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div id="pin-gate">
+    <h1>eightysix</h1>
+    <p class="mobile-subtitle">Enter the PIN shown on the desktop app to continue.</p>
+    <input type="text" inputmode="numeric" pattern="[0-9]*" id="pin-input" placeholder="0000" maxlength="4" />
+    <button class="btn btn-primary" id="pin-submit-btn">Continue</button>
+    <p class="mobile-status error" id="pin-error"></p>
+  </div>
+
+  <div id="app-content" style="display: none;">
+    <h1>eightysix</h1>
+    <p class="mobile-subtitle">Floor tasks: inventory counts and receiving.</p>
+
+    <div class="mobile-tabs">
+      <button class="mobile-tab-btn active" data-screen="counts-screen">Inventory Count</button>
+      <button class="mobile-tab-btn" data-screen="invoice-screen">Receive Invoice</button>
+    </div>
+
+    <section id="counts-screen" class="mobile-screen active">
+      <div class="mobile-field">
+        <label>Item Name</label>
+        <input type="text" id="count-item-name" placeholder="e.g. Chicken Breast (case)" />
+      </div>
+      <div class="mobile-field">
+        <label>Qty On Hand</label>
+        <input type="number" step="0.01" min="0" id="count-qty" value="0" />
+      </div>
+      <div class="mobile-field">
+        <label>Unit</label>
+        <select id="count-unit">
+          <option value="case">case</option>
+          <option value="each">each</option>
+          <option value="lb">lb</option>
+          <option value="oz">oz</option>
+          <option value="g">g</option>
+          <option value="kg">kg</option>
+          <option value="gallon">gallon</option>
+          <option value="quart">quart</option>
+          <option value="pint">pint</option>
+          <option value="dozen">dozen</option>
+          <option value="bag">bag</option>
+          <option value="box">box</option>
+          <option value="bottle">bottle</option>
+          <option value="can">can</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="submit-count-btn">Save Count</button>
+      <p class="mobile-status" id="count-status"></p>
+    </section>
+
+    <section id="invoice-screen" class="mobile-screen">
+      <div class="mobile-field">
+        <label>Photo</label>
+        <input type="file" accept="image/*" capture="environment" id="invoice-photo-input" />
+      </div>
+      <p class="mobile-status" id="scan-status"></p>
+
+      <div class="mobile-field">
+        <label>Vendor</label>
+        <input type="text" id="invoice-vendor" />
+      </div>
+      <div class="mobile-field">
+        <label>Date</label>
+        <input type="date" id="invoice-date" />
+      </div>
+
+      <div class="mobile-field">
+        <label>Line Items</label>
+        <div id="invoice-items-list"></div>
+        <button type="button" class="btn btn-secondary" id="add-invoice-item-btn">Add Item</button>
+      </div>
+
+      <button class="btn btn-primary" id="submit-invoice-btn">Save Invoice</button>
+      <p class="mobile-status" id="invoice-status"></p>
+    </section>
+  </div>
+
+  <script src="/mobile.js"></script>
+</body>
+</html>

@@ -4,6 +4,15 @@ const CATEGORIES = [
   { key: 'labor', label: 'Labor' }
 ];
 
+const UNIT_OPTIONS = ['case', 'each', 'lb', 'oz', 'g', 'kg', 'gallon', 'quart', 'pint', 'dozen', 'bag', 'box', 'bottle', 'can'];
+
+function unitOptionsHtml(selectedUnit) {
+  const options = UNIT_OPTIONS.includes(selectedUnit) ? UNIT_OPTIONS : [selectedUnit, ...UNIT_OPTIONS];
+  return options
+    .map((unit) => `<option value="${unit}" ${unit === selectedUnit ? 'selected' : ''}>${unit}</option>`)
+    .join('');
+}
+
 let invoices = [];
 let thresholds = {
   food: { type: 'percentage', percentage_value: 0, fixed_value: 0 },
@@ -129,8 +138,44 @@ function savePurchaseOrdersData() {
   window.restaurantData.savePurchaseOrders(purchaseOrders);
 }
 
-function computeSuggestedQty(guideItem) {
-  return Math.max(guideItem.par_level - guideItem.on_hand_level, 0);
+function computeSuggestedQty(guideItem, forecast7) {
+  const parGap = guideItem.par_level - guideItem.on_hand_level;
+  const forecastGap = forecast7 !== undefined ? forecast7 - guideItem.on_hand_level : -Infinity;
+  const raw = Math.max(parGap, forecastGap, 0);
+  return raw > 0 ? Math.ceil(raw) : 0;
+}
+
+function computeDemandForecast() {
+  const recipeUnitsSold = new Map();
+  const saleDays = new Set();
+  for (const sale of posSales) {
+    recipeUnitsSold.set(sale.recipe_id, (recipeUnitsSold.get(sale.recipe_id) || 0) + sale.quantity_sold);
+    saleDays.add(sale.date);
+  }
+
+  const forecastByItem = new Map();
+  const dayCount = saleDays.size;
+  if (dayCount === 0) return forecastByItem;
+
+  const itemNames = new Set();
+  for (const recipe of recipes) {
+    for (const ingredient of recipe.ingredients) itemNames.add(ingredient.item_name);
+  }
+
+  for (const itemName of itemNames) {
+    let totalUsage = 0;
+    for (const recipe of recipes) {
+      for (const ingredient of recipe.ingredients) {
+        if (ingredient.item_name === itemName) {
+          totalUsage += ingredient.quantity * (recipeUnitsSold.get(recipe.recipe_id) || 0);
+        }
+      }
+    }
+    const dailyAvg = totalUsage / dayCount;
+    forecastByItem.set(itemName, { dailyAvg, forecast7: dailyAvg * 7, forecast30: dailyAvg * 30 });
+  }
+
+  return forecastByItem;
 }
 
 function updateLastUpdatedIndicator() {
@@ -146,6 +191,7 @@ function renderAllDerived() {
   renderDailySalesTable();
   renderMenuAnalysis();
   renderVarianceTable();
+  renderOrderGuideTable();
   renderLaborByTitleTable();
   renderLaborByEmployeeTable();
   renderLaborFilterTotal();
@@ -739,14 +785,14 @@ function renderIngredientsList() {
         <input type="number" min="0" step="0.01" data-index="${index}" data-field="quantity" value="${ingredient.quantity}" />
       </label>
       <label>Unit
-        <input type="text" data-index="${index}" data-field="unit_label" value="${ingredient.unit_label}" />
+        <select data-index="${index}" data-field="unit_label">${unitOptionsHtml(ingredient.unit_label)}</select>
       </label>
       <button type="button" class="icon-btn remove-ingredient-btn" data-index="${index}" title="Remove">&times;</button>
     `;
     list.appendChild(row);
   });
 
-  list.querySelectorAll('input').forEach((el) => {
+  list.querySelectorAll('input, select').forEach((el) => {
     el.addEventListener('input', () => {
       const index = Number(el.dataset.index);
       const field = el.dataset.field;
@@ -1073,13 +1119,13 @@ function renderInventoryCountsTable() {
       <td><input type="date" value="${count.date}" data-id="${count.count_id}" data-field="date" /></td>
       <td><input type="text" value="${count.item_name}" data-id="${count.count_id}" data-field="item_name" placeholder="Matches an invoice item name" /></td>
       <td><input type="number" min="0" step="0.01" value="${count.quantity_on_hand}" data-id="${count.count_id}" data-field="quantity_on_hand" /></td>
-      <td><input type="text" value="${count.unit_label}" data-id="${count.count_id}" data-field="unit_label" /></td>
+      <td><select data-id="${count.count_id}" data-field="unit_label">${unitOptionsHtml(count.unit_label)}</select></td>
       <td><button class="icon-btn delete-count-btn" data-id="${count.count_id}" title="Delete">&times;</button></td>
     `;
     tbody.appendChild(tr);
   }
 
-  tbody.querySelectorAll('input').forEach((input) => {
+  tbody.querySelectorAll('input, select').forEach((input) => {
     input.addEventListener('change', () => {
       const count = inventoryCounts.find((c) => c.count_id === Number(input.dataset.id));
       const field = input.dataset.field;
@@ -1420,27 +1466,32 @@ function renderOrderGuideTable() {
   tbody.innerHTML = '';
 
   if (orderGuides.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No order guide items yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No order guide items yet.</td></tr>';
     return;
   }
 
+  const forecastByItem = computeDemandForecast();
+
   for (const item of getSortedOrderGuides()) {
-    const suggested = computeSuggestedQty(item);
+    const forecastEntry = forecastByItem.get(item.item_name);
+    const forecast7 = forecastEntry ? forecastEntry.forecast7 : undefined;
+    const suggested = computeSuggestedQty(item, forecast7);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input type="text" value="${item.item_name}" data-id="${item.item_id}" data-field="item_name" /></td>
       <td><input type="text" value="${item.category}" data-id="${item.item_id}" data-field="category" /></td>
       <td><input type="text" value="${item.vendor_name}" data-id="${item.item_id}" data-field="vendor_name" /></td>
-      <td><input type="text" value="${item.order_unit}" data-id="${item.item_id}" data-field="order_unit" /></td>
+      <td><select data-id="${item.item_id}" data-field="order_unit">${unitOptionsHtml(item.order_unit)}</select></td>
       <td><input type="number" min="0" step="1" value="${item.par_level}" data-id="${item.item_id}" data-field="par_level" /></td>
       <td><input type="number" min="0" step="1" value="${item.on_hand_level}" data-id="${item.item_id}" data-field="on_hand_level" /></td>
+      <td class="forecast-value">${forecastEntry ? forecast7.toFixed(1) : '—'}</td>
       <td class="suggested-order-value ${suggested > 0 ? 'needed' : 'none'}">${suggested > 0 ? suggested : '—'}</td>
       <td><button class="icon-btn delete-order-guide-btn" data-id="${item.item_id}" title="Delete">&times;</button></td>
     `;
     tbody.appendChild(tr);
   }
 
-  tbody.querySelectorAll('input').forEach((input) => {
+  tbody.querySelectorAll('input, select').forEach((input) => {
     input.addEventListener('change', () => {
       const item = orderGuides.find((g) => g.item_id === Number(input.dataset.id));
       const field = input.dataset.field;
@@ -1580,14 +1631,14 @@ function renderOrderItemsList() {
         <input type="number" min="0" step="1" data-index="${index}" data-field="quantity" value="${item.quantity}" />
       </label>
       <label>Unit
-        <input type="text" data-index="${index}" data-field="order_unit" value="${item.order_unit}" />
+        <select data-index="${index}" data-field="order_unit">${unitOptionsHtml(item.order_unit)}</select>
       </label>
       <button type="button" class="icon-btn remove-order-item-btn" data-index="${index}" title="Remove">&times;</button>
     `;
     list.appendChild(row);
   });
 
-  list.querySelectorAll('input').forEach((el) => {
+  list.querySelectorAll('input, select').forEach((el) => {
     el.addEventListener('input', () => {
       const index = Number(el.dataset.index);
       const field = el.dataset.field;
@@ -1653,6 +1704,38 @@ orderForm.addEventListener('submit', (event) => {
   closeOrderModal();
 });
 
+/* ---------- Mobile access ---------- */
+
+async function refreshMobileAccessPanel() {
+  const status = await window.restaurantData.getMobileAccessStatus();
+  const btn = document.getElementById('toggle-mobile-access-btn');
+  const info = document.getElementById('mobile-access-info');
+  btn.textContent = status.enabled ? 'Disable' : 'Enable';
+
+  info.innerHTML = status.enabled
+    ? `
+      <div class="mobile-access-details">
+        <div><strong>URL:</strong> ${status.url}</div>
+        <div><strong>PIN:</strong> ${status.pin}</div>
+      </div>
+      <p class="panel-caption">Open that URL in your phone's browser (same WiFi network) and enter the PIN.</p>
+    `
+    : '<p class="panel-caption">Enable to do inventory counts and receive invoices from your phone, over the same WiFi network.</p>';
+}
+
+document.getElementById('toggle-mobile-access-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('toggle-mobile-access-btn');
+  btn.disabled = true;
+  const status = await window.restaurantData.getMobileAccessStatus();
+  if (status.enabled) {
+    await window.restaurantData.disableMobileAccess();
+  } else {
+    await window.restaurantData.enableMobileAccess();
+  }
+  btn.disabled = false;
+  refreshMobileAccessPanel();
+});
+
 /* ---------- Sidebar navigation ---------- */
 
 document.querySelectorAll('.nav-link').forEach((link) => {
@@ -1695,6 +1778,7 @@ async function init() {
   await loadAllData();
   renderOwnTables();
   renderAllDerived();
+  refreshMobileAccessPanel();
 }
 
 window.restaurantData.onDataChanged(async () => {

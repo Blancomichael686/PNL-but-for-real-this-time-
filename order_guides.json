@@ -1,82 +1,12 @@
 [
   {
     "item_id": 1,
-    "item_name": "Chicken Breast (case)",
-    "category": "Food",
-    "vendor_name": "Sysco Foods",
+    "item_name": "",
+    "category": "",
+    "vendor_name": "",
     "order_unit": "case",
-    "par_level": 8,
-    "on_hand_level": 2,
-    "shelf_position": 1
-  },
-  {
-    "item_id": 2,
-    "item_name": "Romaine Lettuce (case)",
-    "category": "Food",
-    "vendor_name": "US Foods",
-    "order_unit": "case",
-    "par_level": 6,
-    "on_hand_level": 3,
-    "shelf_position": 2
-  },
-  {
-    "item_id": 3,
-    "item_name": "Olive Oil (case)",
-    "category": "Food",
-    "vendor_name": "Sysco Foods",
-    "order_unit": "case",
-    "par_level": 3,
+    "par_level": 0,
     "on_hand_level": 0,
-    "shelf_position": 3
-  },
-  {
-    "item_id": 4,
-    "item_name": "Bottled Water (case)",
-    "category": "Beverage",
-    "vendor_name": "poop",
-    "order_unit": "case",
-    "par_level": 10,
-    "on_hand_level": 4,
-    "shelf_position": 30
-  },
-  {
-    "item_id": 5,
-    "item_name": "Coffee Beans (bag)",
-    "category": "Beverage",
-    "vendor_name": "Sysco Foods",
-    "order_unit": "bag",
-    "par_level": 6,
-    "on_hand_level": 6,
-    "shelf_position": 31
-  },
-  {
-    "item_id": 6,
-    "item_name": "Paper Towels (case)",
-    "category": "Paper",
-    "vendor_name": "Sysco Foods",
-    "order_unit": "case",
-    "par_level": 4,
-    "on_hand_level": 1,
-    "shelf_position": 10
-  },
-  {
-    "item_id": 7,
-    "item_name": "To-Go Containers",
-    "category": "Paper",
-    "vendor_name": "US Foods",
-    "order_unit": "case",
-    "par_level": 5,
-    "on_hand_level": 2,
-    "shelf_position": 11
-  },
-  {
-    "item_id": 8,
-    "item_name": "Dish Soap (case)",
-    "category": "Cleaning",
-    "vendor_name": "Sysco Foods",
-    "order_unit": "case",
-    "par_level": 2,
-    "on_hand_level": 1,
-    "shelf_position": 20
+    "shelf_position": 1
   }
 ]

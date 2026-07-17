@@ -1,16 +1,1 @@
-[
-  {
-    "invoice_id": 1,
-    "vendor_name": "poop",
-    "invoice_date": "2026-07-16",
-    "total_cost": 999,
-    "line_items": [
-      {
-        "item_name": "poop",
-        "cost_category": "food",
-        "quantity": 1,
-        "price": 999
-      }
-    ]
-  }
-]
+[]
